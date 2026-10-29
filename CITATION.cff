@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as follows."
+title: "DArTseq_InDel_Finder: A pipeline to detect, filter, and select InDels obtained from DArTseq that differentiate groups of samples (e.g., cultivars or species)"
+authors:
+  - family-names: "Britto"
+    given-names: "Karolinni Bianchi"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+    orcid: "https://orcid.org/0000-0002-1614-0898"
+  - family-names: "de Paula"
+    given-names: "Heberth"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+    orcid: "https://orcid.org/0000-0001-6197-4165"
+  - family-names: "Ventura"
+    given-names: "José Aires"
+    affiliation: "Instituto Capixaba de Pesquisa, Assistência Técnica e Extensão Rural (INCAPER)"
+    orcid: "https://orcid.org/0000-0003-1422-1739"
+  - family-names: "Fernandes de Almeida"
+    given-names: "Raphaella Luisa"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+    orcid: "https://orcid.org/0009-0008-0644-3917"
+  - family-names: "Bastos"
+    given-names: "Matheus Paulo"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+  - family-names: "Santanna"
+    given-names: "Artur"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+  - family-names: "Paneto"
+    given-names: "Greiciane Gaburro"
+    affiliation: "Federal University of Espírito Santo (UFES)"
+    orcid: "https://orcid.org/0000-0001-8035-4199"
+repository-code: "https://github.com/BioinfoUfes/DArTseq_InDel_Finder"
+license: "MIT"
+version: "1.0.0"
+date-released: "2026-10-29"
+# doi: "<adicione o DOI do Zenodo após o primeiro release>"
+keywords:
+  - InDel analysis
+  - DArTseq
+  - high resolution melting
+  - HRM
+  - primer design
+  - genomics
+  - bioinformatics
+  - molecular biology

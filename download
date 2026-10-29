@@ -1,0 +1,26 @@
+# saídas
+indel_hrm_output/
+*/curvas/
+*.xlsx
+*.pdf
+
+# genomas e relatórios (grandes / dados do usuário)
+reports/
+genomes/
+*.fa
+*.fna
+*.fasta
+*.fa.gz
+*.fna.gz
+*.fasta.gz
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# SO/editor
+.DS_Store
+.vscode/

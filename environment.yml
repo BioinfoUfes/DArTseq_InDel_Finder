@@ -1,0 +1,13 @@
+name: indel-hrm-finder
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - numpy
+  - matplotlib
+  - openpyxl
+  - biopython
+  - pip
+  - pip:
+      - primer3-py>=2.0
