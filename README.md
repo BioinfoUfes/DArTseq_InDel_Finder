@@ -26,6 +26,8 @@ espécie, a ferramenta:
 
 É **genérico**: serve para qualquer espécie, bastando trocar os relatórios e o genoma.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23775496.svg)](https://doi.org/10.5281/zenodo.23775496)
+
 ---
 
 ## Instalação
