@@ -1,8 +1,8 @@
-"""Leitura dos relatórios DArTseq -> marcadores com coordenadas e genótipo por cultivar.
+"""Read the DArTseq reports -> markers with coordinates and per-sample genotype.
 
-Suporta o formato 1-row 'SNP_mapping' (escores 0/1/2/-) e 'SilicoDArT' (presença 1/0/-).
-As triplicatas (colunas com o mesmo rótulo 'genotype <code>') são colapsadas em
-um consenso por cultivar, com flag de inconsistência entre réplicas.
+Supports the 1-row 'SNP_mapping' format (scores 0/1/2/-) and 'SilicoDArT' (presence 1/0/-).
+Technical replicates (columns with the same 'genotype <code>' label) are collapsed into a
+per-sample consensus, with a flag for disagreement between replicates.
 """
 import csv
 from collections import Counter, defaultdict
@@ -33,14 +33,14 @@ def _parse(fn, token, seqc, chromc, posc, crc, repc, picc, sstart, src):
             if row and row[0] == token:
                 header = row; break
         if header is None:
-            raise ValueError(f"Cabeçalho '{token}' não encontrado em {fn}")
+            raise ValueError(f"Header '{token}' not found in {fn}")
         labels = header[sstart:]
         for row in r:
             if not row or not row[0] or row[0] == '*':
                 continue
             chrom = row[chromc].strip()
             if not chrom:
-                continue  # só marcadores alinhados ao genoma
+                continue  # keep only markers aligned to the genome
             try:
                 pos = int(float(row[posc]))
             except ValueError:
@@ -64,8 +64,8 @@ def load_reports(reports_dir: Path):
     sil_files = sorted(reports_dir.glob("*SilicoDArT*.csv"))
     if not snp_files or not sil_files:
         raise FileNotFoundError(
-            f"Esperado um *SNP_mapping*.csv e um *SilicoDArT*.csv em {reports_dir}")
-    # índices de coluna conforme o cabeçalho padrão DArT
+            f"Expected one *SNP_mapping*.csv and one *SilicoDArT*.csv in {reports_dir}")
+    # column indices following the standard DArT header layout
     _, snp = _parse(snp_files[0], 'AlleleID', 2, 4, 5, 10, 21, 18, 22, 'SNP')
     _, sil = _parse(sil_files[0], 'CloneID', 1, 3, 4, 7, 13, 9, 14, 'SIL')
     cult = sorted({c for m in snp for c in m['call']})

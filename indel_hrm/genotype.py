@@ -1,12 +1,13 @@
-"""Análise de HRM ciente do GENÓTIPO de cada amostra.
+"""Genotype-aware HRM analysis.
 
-No HRM o que se compara é a curva de cada AMOSTRA conforme o genótipo dela naquele
-marcador: A = homoduplex longo, B = homoduplex curto, AB = heterozigoto (homo + HETEROduplex,
-derrete antes). Duas amostras com o mesmo genótipo têm a mesma curva e NÃO se separam.
+In HRM you compare the curve of each SAMPLE according to its genotype at the marker:
+A = long homoduplex, B = short homoduplex, AB = heterozygote (homoduplex + HETERODUPLEX,
+which melts earlier). Two samples with the same genotype have the same curve and do NOT
+separate.
 
-Este módulo calcula, por marcador, a curva de cada estado (A/B/AB), a separação par a par
-entre amostras (pico no difference plot) e constrói a árvore de decisão priorizando a
-separação real de HRM. É genérico: funciona para qualquer conjunto de amostras.
+This module computes, per marker, the curve of each state (A/B/AB), the pairwise separation
+between samples (difference-plot peak) and builds the decision tree prioritizing real HRM
+separation. It is generic: it works for any set of samples.
 """
 import itertools
 from difflib import SequenceMatcher
@@ -19,7 +20,7 @@ STRONG = {"A", "B", "AB"}
 
 
 def indel_in_amplicon(amp_long, amp_short):
-    """Posição e tamanho do indel dentro do amplicon (bases a mais no alelo longo)."""
+    """Position and length of the InDel inside the amplicon (extra bases in the long allele)."""
     sm = SequenceMatcher(None, amp_long, amp_short, autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "delete" and i2 > i1:
@@ -38,7 +39,7 @@ def grid_of(cfg):
 
 
 def state_curves(amp_long, amp_short, cfg, grid):
-    """Curvas normalizadas por estado {A,B,AB,N} na grade comum."""
+    """Normalized curves per state {A,B,AB,N} on the common grid."""
     ipos, ilen = indel_in_amplicon(amp_long, amp_short)
     kw = dict(mono_mM=cfg.melt_mono, mg_mM=cfg.melt_mg, dntp_mM=cfg.melt_dntp,
               sigma=cfg.melt_sigma, tmin=cfg.melt_tmin, tmax=cfg.melt_tmax, step=cfg.melt_step)
@@ -54,8 +55,9 @@ def state_curves(amp_long, amp_short, cfg, grid):
     def itp(t, th):
         return _norm(np.interp(grid, t, th))
 
+    # Only A/B/AB have a predictable curve. N (double null) has an UNKNOWN sequence, so we
+    # do NOT fabricate a curve for it (previously N was aliased to B, overstating separation).
     cur = {"A": itp(tA, thA), "B": itp(tB, thB), "AB": itp(tH, thH)}
-    cur["N"] = cur["B"]          # suposição: ausência de tag ~ alelo curto (sinalizado como não-forte)
     return cur, ipos, ilen
 
 
@@ -65,7 +67,7 @@ def diff_metrics(c1, c2):
 
 
 def attach_curves(usable, cfg):
-    """Adiciona 'curves' (por estado) a cada marcador usável (que tem primers)."""
+    """Add 'curves' (per state) to every usable marker (one that has primers)."""
     grid = grid_of(cfg)
     for r in usable:
         p = r["primers"]["pairs"][0]
@@ -75,17 +77,23 @@ def attach_curves(usable, cfg):
 
 
 def pair_separation(marker, sample_x, sample_y, labels_key="labels"):
-    """Pico/RMS do difference plot entre duas amostras, pelo genótipo de cada uma."""
+    """Difference-plot peak/RMS between two samples, from each one's genotype.
+
+    Returns (peak, rms, strong). A curve is only defined for A/B/AB; if either sample is
+    N (double null) or missing, the HRM curve cannot be predicted, so we return 0 and
+    strong=False rather than inventing a separation."""
     sx = marker[labels_key].get(sample_x, "miss")
     sy = marker[labels_key].get(sample_y, "miss")
-    if sx == "miss" or sy == "miss" or sx == sy:
+    if sx == sy:
         return 0.0, 0.0, True
+    if sx not in marker["curves"] or sy not in marker["curves"]:
+        return 0.0, 0.0, False
     mx, rms = diff_metrics(marker["curves"][sx], marker["curves"][sy])
-    return mx, rms, ("N" not in (sx, sy))
+    return mx, rms, True
 
 
 def best_marker_per_pair(usable, samples):
-    """Para cada par de amostras, ranqueia os marcadores pela separação (FORTE primeiro)."""
+    """For each pair of samples, rank the markers by separation (STRONG first)."""
     out = {}
     for x, y in itertools.combinations(samples, 2):
         rows = []
@@ -99,7 +107,7 @@ def best_marker_per_pair(usable, samples):
     return out
 
 
-# ---------------- árvore de decisão ciente do genótipo ----------------
+# ---------------- genotype-aware decision tree ----------------
 
 def _mkey(r):
     return (r["chrom"], r["pos"])
@@ -116,7 +124,7 @@ def _groups(marker, members):
 
 
 def _node_sep(marker, members):
-    """Menor separação entre membros de estados diferentes, e se é tudo FORTE."""
+    """Smallest separation between members of different states, and whether all is STRONG."""
     wmin, forte = 999.0, True
     for a, b in itertools.combinations(members, 2):
         if marker["labels"][a] != marker["labels"][b]:
@@ -164,7 +172,7 @@ def _best_subtree(members, used, pool):
 
 
 def build_trees(usable, samples, cfg, n_trees=3):
-    """Constrói árvores (uma por raiz possível), ranqueia e escolhe até n_trees disjuntas."""
+    """Build trees (one per possible root), rank them, and pick up to n_trees disjoint ones."""
     pool = usable
     cands = []
     for r in pool:

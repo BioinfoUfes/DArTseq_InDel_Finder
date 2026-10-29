@@ -1,4 +1,8 @@
 # **DArTseq_InDel_Finder**
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23775496.svg)](https://doi.org/10.5281/zenodo.23775496)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ---
 ### InDels that Differentiate Samples (Cultivars / Species)
 
@@ -7,116 +11,142 @@ differentiate groups of samples (e.g., cultivars or species). Beyond detecting t
 InDels, it designs HRM primers and predicts, per genotype, the High Resolution Melting
 separation — so the output is a set of prioritized, ready-to-test HRM assays.
 
-> É a evolução (InDel + HRM) do [`DArTseq_SNP_Finder`](https://github.com/BioinfoUfes/DArTseq_SNP_Finder),
-> desenvolvida pelo mesmo grupo (BioInfo/UFES).
+> It is the evolution (InDel + HRM) of [`DArTseq_SNP_Finder`](https://github.com/BioinfoUfes/DArTseq_SNP_Finder),
+> developed by the same group (BioInfo/UFES).
 
-A partir dos relatórios DArTseq e de um (ou mais) genoma(s) de referência da sua
-espécie, a ferramenta:
+From the DArTseq reports and one (or more) reference genome(s) of your species, the tool:
 
-1. **infere indels** comparando tags que caem no mesmo locus do genoma (o DArTseq-SNP
-   só reporta substituições; os indels são inferidos);
-2. **mapeia e checa especificidade** de cada tag no genoma que você fornecer (funciona
-   com qualquer montagem, inclusive haplótipos separados);
-3. **desenha primers** de HRM (Primer3) com amplicon curto, flanqueando o indel;
-4. **prevê a curva de melting de cada amostra pelo genótipo** (A = homoduplex longo,
-   B = homoduplex curto, AB = heterozigoto com heteroduplex), via um modelo local
-   (Zimm-Bragg/Ising com parâmetros de vizinho-mais-próximo) — sem depender de sites;
-5. **monta árvores de decisão** que identificam as amostras no menor número de análises,
-   priorizando a separação real de HRM (pico no *difference plot*).
+1. **infers indels** by comparing tags that fall at the same genome locus (DArTseq-SNP
+   only reports substitutions; indels are inferred);
+2. **maps and checks the specificity** of each tag in the genome you provide (works with
+   any assembly, including separate haplotypes);
+3. **designs HRM primers** (Primer3) with a short amplicon flanking the indel;
+4. **predicts each sample's melting curve from its genotype** (A = long homoduplex,
+   B = short homoduplex, AB = heterozygote with heteroduplex), via a local model
+   (Zimm-Bragg/Ising with nearest-neighbor parameters) — without relying on any website;
+5. **builds decision trees** that identify the samples in the fewest analyses, prioritizing
+   real HRM separation (difference-plot peak).
 
-É **genérico**: serve para qualquer espécie, bastando trocar os relatórios e o genoma.
+It is **generic**: it works for any species — just swap the reports and the genome.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23775496.svg)](https://doi.org/10.5281/zenodo.23775496)
+### What's new in v2.0.0
+
+- Proper **affine-gap DNA aligner** (Biopython) for InDel calling, with a difflib fallback.
+- **Exact-match in-silico PCR** screen of each primer pair against the reference (products
+  counted per haplotype).
+- **Honest `N` handling**: a double-null (`N`) is never treated as allele `B`; pairs that
+  rely on `N` are flagged, never reported as STRONG.
+- **Honest HRM labeling**: difference-plot peaks are uncalibrated, relative predictions —
+  not instrument-calibrated values or probabilities of success.
+- **Machine-readable outputs** (TSV + JSON) next to the XLSX, plus unit tests and CI.
+
+See `CHANGELOG.md` for the full list.
 
 ---
 
-## Instalação
+## Installation
 
-Com conda (recomendado):
+With conda (recommended):
 
 ```bash
 conda env create -f environment.yml
 conda activate indel-hrm-finder
 ```
 
-Ou com pip:
+Or with pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Dependências: `primer3-py`, `biopython`, `numpy`, `openpyxl`, `matplotlib`.
-Não é necessário BLAST nem instalar nada além disso.
+Dependencies: `primer3-py`, `biopython`, `numpy`, `openpyxl`, `matplotlib`.
+Neither BLAST nor anything else needs to be installed.
 
-## Entradas
+## Inputs
 
-- **Relatórios DArTseq** numa pasta (ex.: `reports/`): um `*SNP_mapping*.csv` **e** um
-  `*SilicoDArT*.csv` do seu pedido DArT.
-- **Genoma(s) de referência** da sua espécie, em FASTA (`.fa`/`.fa.gz`). Pode informar
-  mais de um arquivo (ex.: dois haplótipos de uma montagem faseada). A localização é
-  feita pela própria sequência da tag, então **qualquer montagem serve**.
-- *(opcional)* **CSV de nomes** das amostras, com colunas `code,name`, para que os
-  relatórios saiam com nomes legíveis em vez dos códigos (veja `examples/`).
+- **DArTseq reports** in a folder (e.g. `reports/`): one `*SNP_mapping*.csv` **and** one
+  `*SilicoDArT*.csv` from your DArT order.
+- **Reference genome(s)** of your species, in FASTA (`.fa`/`.fa.gz`). You may provide
+  more than one file (e.g. two haplotypes of a phased assembly). Localization is done by
+  the tag sequence itself, so **any assembly works**.
+- *(optional)* **Name CSV** for the samples, with columns `code,name`, so the reports
+  come out with readable names instead of the codes (see `examples/`).
 
-## Uso
+## Usage
 
-### Modo interativo (faz as perguntas)
+### Interactive mode (asks the questions)
 
 ```bash
 python run.py
 ```
 
-Ele pergunta: a pasta dos relatórios, o(s) genoma(s), o CSV de nomes (opcional), o modo
-(árvore ou painel), quais amostras comparar, as condições de HRM do seu kit
-(Mg²⁺ e Mono⁺) e a pasta de saída.
+It asks for: the reports folder, the genome(s), the name CSV (optional), the mode
+(tree or panel), which samples to compare, your kit's HRM conditions (Mg2+ and Mono+)
+and the output folder.
 
-### Modo linha de comando
+### Command-line mode
 
 ```bash
 python run.py \
   --reports reports \
-  --genome genomaHapA.fa.gz genomaHapB.fa.gz \
-  --metadata examples/amostras_exemplo.csv \
+  --genome genomeHapA.fa.gz genomeHapB.fa.gz \
+  --metadata examples/example_samples.csv \
   --samples 7011,7041,7115,7167 \
   --mode tree \
   --melt-mg 3 --melt-mono 20 \
-  --out saida
+  --out output
 ```
 
-- `--mode tree` monta a **árvore de decisão** para o grupo de amostras indicado em
-  `--samples` (omita para usar todas).
-- `--mode panel` monta o **painel mínimo** que distingue todas as amostras.
-- `--melt-mg` / `--melt-mono`: use as concentrações do **seu** master mix de HRM.
+- `--mode tree` builds the **decision tree** for the group of samples given in
+  `--samples` (omit to use all).
+- `--mode panel` builds the **minimal panel** that distinguishes all the samples.
+- `--melt-mg` / `--melt-mono`: use the concentrations of **your** HRM master mix.
 
-## Saídas (na pasta `--out`)
+## Outputs (in the `--out` folder)
 
-- `HRM_marcadores.xlsx`
-  - **Separacao_por_par** — para cada par de amostras, os melhores marcadores e o pico
-    de separação no *difference plot* (sua ferramenta para escolher primers).
-  - **Arvores** — as árvores de decisão (melhor primeiro), com o fluxo passo a passo.
-  - **Primers** — primers (F/R, Tm), amplicons e especificidade.
-  - **Metodo** — parâmetros e notas.
-- `curvas/` — uma imagem por marcador: a curva de **cada amostra pelo genótipo** +
-  o *difference plot*.
-- `amplicons.fasta` — alelos longo/curto de cada marcador, para conferência no uMelt.
+- `HRM_markers.xlsx`
+  - **Separation_per_pair** — for each pair of samples, the best markers and the
+    predicted difference-plot peak (your tool for choosing primers).
+  - **Trees** — the decision trees (best first), with the step-by-step flow.
+  - **Primers** — primers (F/R, Tm), amplicons, mapping hits and in-silico PCR products.
+  - **Method** — parameters and notes.
+- `candidates.tsv`, `primers.tsv`, `per_pair.tsv` — the same information as plain tables,
+  for scripting and sharing.
+- `run_summary.json` — parameters, counts and the chosen tree(s), machine-readable.
+- `curves/` — one image per marker: the predicted curve of **each sample by genotype** +
+  the difference plot.
+- `amplicons.fasta` — long/short alleles of each marker, for checking in uMelt.
 
-## Como interpretar
+## Testing
 
-- O HRM separa pela **forma da curva** (difference plot), não só pela Tm do pico.
-- Regra prática do pico no difference plot: **≥25%** fácil · **12–25%** provável ·
-  **<12%** difícil.
-- Duas amostras com o **mesmo genótipo** (ex.: ambas heterozigotas) **não se separam**.
-- Marcadores de evidência **FORTE** não dependem do estado "N" (presença/ausência);
-  os que usam "N" exigem confirmação de bancada do alelo.
+```bash
+pip install pytest
+pytest -q
+```
 
-## Limitações (honestas)
+The tests use small synthetic fixtures and run in seconds. They verify software behavior
+(alignment, genotype states, `N` handling, in-silico PCR, panel selection), not biological
+validity on real data.
 
-- Os indels são **inferidos** de presença/ausência do DArTseq — **valide na bancada**
-  (PCR + tamanho) antes de fechar o ensaio.
-- A predição de melting é uma **aproximação cooperativa** (sem entropia de loop à la
-  Poland–Scheraga). Para conferência fina, use o uMelt com o `amplicons.fasta`.
-- Sem genoma de referência, o rendimento de primer é baixo (as tags têm ~69 pb).
+## How to interpret
 
-## Licença
+- HRM separates by the **shape of the curve** (difference plot), not only by the peak Tm.
+- The difference-plot peak (%) is an **uncalibrated, relative prediction** from a local
+  melting model — use it to rank candidates, not as a calibrated value or a probability of
+  success. Rule of thumb (generic heuristic): **>=25%** easy · **12–25%** likely ·
+  **<12%** difficult. Confirm absolute behavior with uMelt and on your own instrument.
+- Two samples with the **same genotype** (e.g. both heterozygous) **do not separate**.
+- Markers with **STRONG** evidence do not depend on the "N" state (presence/absence);
+  those that use "N" require bench confirmation of the allele.
 
-MIT — veja `LICENSE`. Para citar, veja `CITATION.cff`.
+## Limitations (honest)
+
+- Indels are **inferred** from DArTseq presence/absence — **validate at the bench**
+  (PCR + size) before finalizing the assay.
+- The melting prediction is a **cooperative approximation** (no loop entropy à la
+  Poland–Scheraga). For fine checking, use uMelt with the `amplicons.fasta`.
+- Without a reference genome, primer yield is low (the tags are ~69 bp).
+
+## License
+
+MIT — see `LICENSE`. To cite, see `CITATION.cff`.

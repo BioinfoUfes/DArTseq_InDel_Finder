@@ -1,0 +1,36 @@
+# outputs
+indel_hrm_output/
+*/curves/
+*.xlsx
+*.pdf
+run_summary.json
+candidates.tsv
+primers.tsv
+per_pair.tsv
+amplicons.fasta
+test_out/
+
+# genomes and reports (large / user data)
+reports/
+genomes/
+*.fa
+*.fna
+*.fasta
+*.fa.gz
+*.fna.gz
+*.fasta.gz
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# OS/editor
+.DS_Store
+.vscode/

@@ -1,9 +1,9 @@
-"""Caracteriza cada candidato a indel: estado por cultivar, poder de separação,
-consistência das triplicatas, contexto de homopolímero e força da evidência.
+"""Characterize each InDel candidate: per-sample state, discriminating power, replicate
+consistency, homopolymer context and strength of the evidence.
 
-Estados do marcador de comprimento (SilicoDArT dominante):
-  A  = só a tag A presente     B  = só a tag B presente
-  AB = ambas presentes         N  = nenhuma (null duplo)   miss = dado faltante
+Length-marker states (dominant SilicoDArT):
+  A  = only tag A present       B  = only tag B present
+  AB = both present             N  = none (double null)     miss = missing data
 """
 import itertools
 from .indel_finder import gap_segment_and_homopolymer
@@ -50,7 +50,8 @@ def characterize(cand, markers, cult):
         out.append(dict(
             chrom=ma['chrom'], pos=ma['pos'], idA=ma['id'], idB=mb['id'],
             src=ma['src'] + '-' + mb['src'], indel=cd['indel'], seg=seg, hp=hp,
-            ident=cd['ident'], labels=labels, incons=incons,
+            ident=cd['ident'], exact_anchor=cd.get('exact_anchor', 0),
+            labels=labels, incons=incons,
             sep_clean=nsep(clean), sep_all=nsep(allst),
             n_clean=len(clean), n_all=len(allst),
             incons_n=sum(incons.values()),

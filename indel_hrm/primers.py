@@ -1,13 +1,14 @@
-"""Desenho de primers para HRM com primer3-py.
+"""HRM primer design with primer3-py.
 
-Força o par a flanquear o indel (SEQUENCE_TARGET) e restringe o amplicon à faixa
-curta típica de HRM. Gera os dois amplicons (com e sem o indel) para a predição de melting.
+Forces the pair to flank the InDel (SEQUENCE_TARGET) and restricts the amplicon to the
+short range typical of HRM. Produces both amplicons (with and without the InDel) for the
+melting prediction.
 """
 import primer3
 
 
 def _design(seq_args, global_args):
-    # compatível com primer3-py novo e antigo
+    # compatible with new and old primer3-py
     if hasattr(primer3, "design_primers"):
         return primer3.design_primers(seq_args, global_args)
     return primer3.bindings.designPrimers(seq_args, global_args)
@@ -16,7 +17,7 @@ def _design(seq_args, global_args):
 def design_for_region(region, cfg):
     template = region['template']
     istart, ilen = region['indel_start'], region['indel_len']
-    # alvo = o indel (se ilen=0, alveja o ponto central para ainda flanquear)
+    # target = the InDel (if ilen=0, target the midpoint so primers still flank it)
     if ilen > 0:
         target = [istart, ilen]
     else:
@@ -47,11 +48,11 @@ def design_for_region(region, cfg):
     try:
         res = _design(seq_args, global_args)
     except Exception as e:
-        return {'ok': False, 'reason': f'primer3 erro: {e}', 'pairs': []}
+        return {'ok': False, 'reason': f'primer3 error: {e}', 'pairs': []}
 
     n = res.get('PRIMER_PAIR_NUM_RETURNED', 0)
     if not n:
-        # retry relaxado: Tm e tamanho de produto mais amplos
+        # relaxed retry: wider Tm and product-size ranges
         relaxed = dict(global_args)
         relaxed.update({
             'PRIMER_MIN_TM': cfg.primer_min_tm - 3, 'PRIMER_MAX_TM': cfg.primer_max_tm + 3,
@@ -67,19 +68,19 @@ def design_for_region(region, cfg):
             n = 0
     if not n:
         expl = res.get('PRIMER_PAIR_EXPLAIN', '')
-        return {'ok': False, 'reason': f'sem par válido ({expl})', 'pairs': []}
+        return {'ok': False, 'reason': f'no valid pair ({expl})', 'pairs': []}
 
     pairs = []
     for i in range(n):
         lstart, llen = res[f'PRIMER_LEFT_{i}']
-        rstart, rlen = res[f'PRIMER_RIGHT_{i}']   # rstart = base 3' na fita top
+        rstart, rlen = res[f'PRIMER_RIGHT_{i}']   # rstart = 3' base on the top strand
         prod = res[f'PRIMER_PAIR_{i}_PRODUCT_SIZE']
         amp_long = template[lstart:rstart + 1]
-        # amplicon do alelo sem o indel (remove as bases do indel, se dentro do amplicon)
+        # amplicon of the allele without the InDel (drop the InDel bases, if inside the amplicon)
         if lstart <= istart and (istart + ilen) <= rstart + 1 and ilen > 0:
             amp_short = template[lstart:istart] + template[istart + ilen:rstart + 1]
         else:
-            amp_short = amp_long  # indel fora do amplicon (não deveria ocorrer com TARGET)
+            amp_short = amp_long  # InDel outside the amplicon (should not happen with TARGET)
         pairs.append(dict(
             idx=i,
             left_seq=res[f'PRIMER_LEFT_{i}_SEQUENCE'],

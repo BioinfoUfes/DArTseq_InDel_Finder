@@ -30,7 +30,7 @@ authors:
     orcid: "https://orcid.org/0000-0001-8035-4199"
 repository-code: "https://github.com/BioinfoUfes/DArTseq_InDel_Finder"
 license: "MIT"
-version: "1.0.0"
+version: "2.0.0"
 date-released: "2026-10-29"
 doi: "10.5281/zenodo.23775496"
 keywords:

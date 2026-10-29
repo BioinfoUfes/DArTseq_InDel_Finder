@@ -1,17 +1,17 @@
-"""Predição local da curva de melting (helicidade × temperatura) para HRM.
+"""Local prediction of the melting curve (helicity vs temperature) for HRM.
 
-Modelo de hélice-novelo tipo Zimm-Bragg/Ising (matriz de transferência, exatamente
-solúvel, O(N)), com parâmetros de vizinho-mais-próximo (SantaLucia 1998) e correção de
-sal. Reproduz a MESMA saída do uMelt (helicidade e derivada -dθ/dT) e a Tm = pico da
-derivada, SEM depender de site. É uma aproximação cooperativa (não inclui entropia de
-loop à la Poland-Scheraga), honesta para triagem e comparação entre alelos; a validação
-de bancada e, se quiser, a conferência pontual no uMelt continuam valendo.
+Zimm-Bragg/Ising helix-coil model (transfer matrix, exactly solvable, O(N)) with
+nearest-neighbor parameters (SantaLucia 1998) and salt correction. It reproduces the SAME
+kind of output as uMelt (helicity and the derivative -dθ/dT) and Tm = the derivative peak,
+WITHOUT relying on any external site. It is a cooperative approximation (it does not
+include loop entropy à la Poland-Scheraga), honest for screening and comparing alleles;
+bench validation and, if desired, a spot check in uMelt still apply.
 """
 import math
 
 R = 1.98720425864083e-3  # kcal/mol/K
 
-# SantaLucia (1998) unified NN: (ΔH kcal/mol, ΔS cal/mol/K)
+# SantaLucia (1998) unified NN: (dH kcal/mol, dS cal/mol/K)
 NN = {
     'AA': (-7.6, -21.3), 'TT': (-7.6, -21.3),
     'AT': (-7.2, -20.4), 'TA': (-7.2, -21.3),
@@ -38,19 +38,19 @@ def _stacks(seq):
         if d in NN:
             out.append(NN[d])
         else:
-            out.append((-8.0, -22.0))  # fallback p/ base ambígua
+            out.append((-8.0, -22.0))  # fallback for an ambiguous base
     return out
 
 
 def _lnZ(stacks, T, na_M, sigma, lam=1.0, open_mask=None):
-    """ln da função de partição (Ising/Zimm-Bragg) com escalonamento (seguro p/ overflow).
-    open_mask: conjunto de índices de stack forçados a NOVELO (ex.: alça do heteroduplex)."""
-    salt = 0.368 * math.log(na_M)      # correção de sal por NN (cal/mol/K)
-    v_h, v_c = 0.0, 1.0                 # estado inicial: novelo
+    """ln of the partition function (Ising/Zimm-Bragg) with scaling (overflow-safe).
+    open_mask: set of stack indices forced to COIL (e.g. the heteroduplex loop/bulge)."""
+    salt = 0.368 * math.log(na_M)      # per-NN salt correction (cal/mol/K)
+    v_h, v_c = 0.0, 1.0                 # initial state: coil
     lnscale = 0.0
     for i, (dH, dS) in enumerate(stacks):
         if open_mask is not None and i in open_mask:
-            s = 0.0                     # região não pareada (bulge): nunca helicoidal
+            s = 0.0                     # unpaired region (bulge): never helical
         else:
             dS_c = dS + salt
             dG = dH - T * dS_c / 1000.0
@@ -88,7 +88,7 @@ def _deriv_tm(temps, theta, step):
 
 def helicity(seq, mono_mM=20.0, mg_mM=3.0, dntp_mM=0.0, sigma=1e-4,
              tmin=45.0, tmax=98.0, step=0.5, open_mask=None):
-    """Retorna (temps[°C], theta[0..1], deriv[-dθ/dT], Tm[°C])."""
+    """Returns (temps[C], theta[0..1], deriv[-dtheta/dT], Tm[C])."""
     stacks = _stacks(seq)
     if len(stacks) < 5:
         return [], [], [], None
@@ -100,19 +100,19 @@ def helicity(seq, mono_mM=20.0, mg_mM=3.0, dntp_mM=0.0, sigma=1e-4,
 
 def het_curve(seq_long, indel_start, indel_len, mono_mM=20.0, mg_mM=3.0, dntp_mM=0.0,
               sigma=1e-4, tmin=45.0, tmax=98.0, step=0.5):
-    """Curva de uma amostra HETEROZIGOTA (alelo longo + curto).
-    Mistura: 25% homoduplex longo + 25% homoduplex curto + 50% heteroduplex
-    (fitas longo×curto com uma alça não pareada de 'indel_len' bases -> derrete antes)."""
+    """Curve of a HETEROZYGOUS sample (long + short alleles).
+    Mixture: 25% long homoduplex + 25% short homoduplex + 50% heteroduplex
+    (long x short strands with an unpaired loop of 'indel_len' bases -> melts earlier)."""
     na_M = max(na_equivalent_mM(mono_mM, mg_mM, dntp_mM), 1.0) / 1000.0
     long_stacks = _stacks(seq_long)
     seq_short = seq_long[:indel_start] + seq_long[indel_start + indel_len:]
     short_stacks = _stacks(seq_short)
-    # heteroduplex: usa o arcabouço longo com a região do indel forçada aberta (bulge)
+    # heteroduplex: the long backbone with the InDel region forced open (bulge)
     open_mask = set(range(max(0, indel_start - 1), min(len(long_stacks), indel_start + indel_len + 1)))
     tL, thL = _theta_curve(long_stacks, na_M, sigma, tmin, tmax, step)
     tS, thS = _theta_curve(short_stacks, na_M, sigma, tmin, tmax, step)
     tH, thH = _theta_curve(long_stacks, na_M, sigma, tmin, tmax, step, open_mask)
-    # alinha em grade comum
+    # align on a common grid
     import numpy as np
     grid = np.arange(tmin, tmax, step)
     iL = np.interp(grid, tL, thL); iS = np.interp(grid, tS, thS); iH = np.interp(grid, tH, thH)
