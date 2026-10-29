@@ -32,7 +32,7 @@ repository-code: "https://github.com/BioinfoUfes/DArTseq_InDel_Finder"
 license: "MIT"
 version: "2.0.0"
 date-released: "2026-10-29"
-doi: "10.5281/zenodo.23775496"
+doi: "10.5281/zenodo.23775495"
 keywords:
   - InDel analysis
   - DArTseq
